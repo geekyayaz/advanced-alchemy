@@ -1,19 +1,26 @@
 #!/usr/bin/env bash
-# test.sh — Project Olympus test harness
-#
 # Usage:
-#   ./test.sh base   — run pre-existing tests (must pass on baseline, no solution needed)
-#   ./test.sh new    — run the new challenge tests (must FAIL on baseline, PASS with solution)
+#   ./test.sh [--output_path results.xml] base   — regression tests (must pass without solution)
+#   ./test.sh [--output_path results.xml] new    — new tests (must FAIL without solution, PASS with it)
 #
 # All tests use an in-memory SQLite database; no network access is required.
 
 set -euo pipefail
 
+OUTPUT_PATH=""
+if [ "${1:-}" = "--output_path" ]; then
+  OUTPUT_PATH="$2"
+  shift 2
+fi
+
 MODE="${1:-new}"
 
-# Resolve the uv-managed Python interpreter
-PYTHON="$(uv run python -c 'import sys; print(sys.executable)')"
 PYTEST="uv run pytest"
+
+JUNIT_ARGS=()
+if [ -n "$OUTPUT_PATH" ]; then
+  JUNIT_ARGS=("--junitxml=$OUTPUT_PATH")
+fi
 
 case "$MODE" in
   base)
@@ -45,12 +52,12 @@ case "$MODE" in
       --deselect=tests/unit/test_repository.py::test_model_from_dict_with_model_key \
       --deselect=tests/unit/test_repository.py::test_model_from_dict_with_mapped_model_field \
       --deselect=tests/unit/test_repository.py::test_convert_relationship_value_helper \
-      -q --tb=short
+      -q --tb=short "${JUNIT_ARGS[@]}"
     ;;
   new)
     echo "=== Running new polymorphic-support tests ==="
     exec $PYTEST tests/unit/test_polymorphic.py \
-      -v --tb=short
+      -v --tb=short "${JUNIT_ARGS[@]}"
     ;;
   *)
     echo "Unknown mode '$MODE'. Use: base | new" >&2
