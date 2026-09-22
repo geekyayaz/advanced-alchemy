@@ -18,10 +18,13 @@ PYTEST="uv run pytest"
 case "$MODE" in
   base)
     echo "=== Running baseline regression tests ==="
+    # test_model_from_dict_includes_relationship_attributes requires the
+    # fsspec 'memory' backend which is not available in this environment;
+    # it fails on the pinned baseline commit and is not related to this challenge.
     exec $PYTEST tests/unit/ \
       --ignore=tests/unit/test_polymorphic.py \
-      -q --tb=short \
-      -x
+      --deselect=tests/unit/test_repository.py::test_model_from_dict_includes_relationship_attributes \
+      -q --tb=short
     ;;
   new)
     echo "=== Running new polymorphic-support tests ==="
